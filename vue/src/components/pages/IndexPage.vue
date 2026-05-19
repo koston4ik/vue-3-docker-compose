@@ -1,28 +1,34 @@
 <template>
   <div class="map" :style="mapStyle">
-    <div v-for="area in getAreas" class="map__area" :style="areaStyle(area)"></div>
+    <div class="map__area" v-for="area in getReversedAreas" :class="'map__area--' + area.type" :style="areaStyle(area)"/>
   </div>
   <div class="water"/>
   <Boat/>
-  <Inventory/>
+  <BottomInventory/>
   <Location/>
   <MiniGame/>
+  <Shop v-if="getIsShopping"/>
+  <SideInventory/>
 </template>
 
 <script>
 import Boat from './../ui/Boat.vue'
-import Inventory from './../ui/Inventory.vue'
+import BottomInventory from './../ui/BottomInventory.vue'
 import Location from './../ui/Location.vue'
 import MiniGame from './../ui/MiniGame.vue'
+import Shop from './../ui/Shop.vue'
+import SideInventory from './../ui/SideInventory.vue'
 import { mapGetters, mapActions } from 'vuex'
 
 export default {
   name: 'IndexPage',
   components: {
     Boat,
-    Inventory,
+    BottomInventory,
     Location,
-    MiniGame
+    MiniGame,
+    Shop,
+    SideInventory
   },
   data() {
     return {
@@ -57,16 +63,20 @@ export default {
   },
   computed: {
     ...mapGetters([
+      'getBoat',
       'getIsFishing',
       'getIsHooked',
       'getIsBroken',
-      'getBoat',
-      'getAreas'
+      'getAreas',
+      'getIsShopping'
     ]),
     mapStyle() {
       return {
         transform: 'translate(' + (this.center.x - this.getBoat.x) + 'px, ' + (this.center.y - this.getBoat.y) + 'px)'
       }
+    },
+    getReversedAreas() {
+      return this.getAreas.slice().reverse()
     }
   },
   methods: {
@@ -81,33 +91,39 @@ export default {
         left: (area.x - area.radius) + 'px',
         top: (area.y - area.radius) + 'px',
         width: (area.radius * 2) + 'px',
-        height: (area.radius * 2) + 'px',
-        backgroundColor: area.type === 'high' ? 'rgba(25, 10, 10, 0.5)' : 'rgba(25, 80, 80, 0.5)'
+        height: (area.radius * 2) + 'px'
       }
     },
     updateMoving() {
-      let updMoving = false
-      if(!this.getIsFishing && !this.getIsHooked && !this.getIsBroken) {
+      if(!this.getIsFishing && !this.getIsHooked && !this.getIsBroken && !this.getIsShopping) {
         let x = 0, y = 0
-        if(this.pressed.ArrowDown)
+        if(this.pressed.ArrowDown) {
           y += 1
-        if(this.pressed.ArrowUp)
+        }
+        if(this.pressed.ArrowUp) {
           y -= 1
-        if(this.pressed.ArrowRight)
+        }
+        if(this.pressed.ArrowRight) {
           x += 1
-        if(this.pressed.ArrowLeft)
+        }
+        if(this.pressed.ArrowLeft) {
           x -= 1
+        }
         if(x !== 0 || y !== 0) {
           if(Math.abs(this.getBoat.x - this.lastCheck.x) > 500 || Math.abs(this.getBoat.y - this.lastCheck.y) > 500) {
             this.relocateDistantAreas()
             this.lastCheck.x = this.getBoat.x
             this.lastCheck.y = this.getBoat.y
           }
-          updMoving = true
           this.move({px: x, py: y})
         }
+        else {
+          this.setMoving(false)
+        }
       }
-      this.setMoving(updMoving)
+      else {
+        this.setMoving(false)
+      }
       requestAnimationFrame(this.updateMoving)
     },
     updateCenter() {
@@ -115,12 +131,14 @@ export default {
       this.center.y = window.innerHeight / 2
     },
     movingKeyDown(event) {
-      if(this.pressed.hasOwnProperty(event.key))
-        this.pressed[event.key] = true
+      if(this.pressed.hasOwnProperty(event.code)) {
+        this.pressed[event.code] = true
+      }
     },
     movingKeyUp(event) {
-      if(this.pressed.hasOwnProperty(event.key))
-        this.pressed[event.key] = false
+      if(this.pressed.hasOwnProperty(event.code)) {
+        this.pressed[event.code] = false
+      }
     }
   }
 }
@@ -136,6 +154,22 @@ export default {
   &__area {
     position: absolute;
     border-radius: 50%;
+
+    &--medium {
+      background-color: rgba(25, 80, 80, 0.5);
+    }
+
+    &--high {
+      background-color: rgba(25, 10, 10, 0.5);
+    }
+
+    &--shallow {
+      background-color: rgba(165, 165, 40, 0.5);
+    }
+
+    &--island {
+      background-color: rgb(165, 165, 40);
+    }
   }
 }
 

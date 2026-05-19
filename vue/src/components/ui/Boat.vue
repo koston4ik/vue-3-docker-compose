@@ -1,25 +1,25 @@
 <template>
   <div class="boat">
     <div class = "boat__image">
-      <img src="../../assets/images/boat.png" width="150px" alt="boat">
+      <img src="../../assets/images/boat.png" width="150" alt="boat">
       <div class="boat__image__man" :class="manClass" :style="manStyle"/>
     </div>
   </div>
 </template>
 
 <script>
-import {mapGetters} from 'vuex'
+import { mapGetters } from 'vuex'
 
 export default {
   name: 'Boat',
   computed: {
     ...mapGetters([
+      'getBoat',
       'getIsMoving',
       'getIsFishing',
       'getIsGaming',
       'getIsHooked',
-      'getIsBroken',
-      'getBoat'
+      'getIsBroken'
     ]),
     manClass() {
       return {

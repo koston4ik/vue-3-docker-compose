@@ -1,7 +1,8 @@
 <template>
   <div class="text">
+    <div class="text__balance">Balance: {{ getBalance < 10000 ? getBalance : '>9999' }}$</div>
     <div class="text__coords">Coordinates (X: {{ getBoat.x }}, Y: {{ getBoat.y }})</div>
-    <div class="text__area">Area type: {{ !getCurrentAreaInfo ? 'low' : getCurrentAreaInfo.area.type }}</div>
+    <div class="text__area">Area type: {{ getCurrentAreaType }}</div>
   </div>
 </template>
 
@@ -13,8 +14,12 @@ export default {
   computed: {
     ...mapGetters([
       'getBoat',
+      'getBalance',
       'getCurrentAreaInfo'
-    ])
+    ]),
+    getCurrentAreaType() {
+      return !this.getCurrentAreaInfo ? 'low' : this.getCurrentAreaInfo.area.type
+    }
   }
 }
 </script>
@@ -45,6 +50,10 @@ export default {
     2px 2px 0 black;
   transform: translateX(-50%);
   z-index: 2;
+
+  &__balance {
+    font-weight: bold;
+  }
 
   &__coords {
     font-weight: bold;

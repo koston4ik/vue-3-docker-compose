@@ -8,12 +8,17 @@
 </template>
 
 <script>
-import {mapActions, mapGetters} from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 
 export default {
   name: 'MiniGame',
   data() {
     return {
+      baitKeyIndex: {
+        KeyZ: 0,
+        KeyX: 1,
+        KeyC: 2
+      },
       targetPosition: 10,
       playerPosition: 0,
       playerSpeed: 2,
@@ -24,10 +29,10 @@ export default {
     }
   },
   mounted() {
-    window.addEventListener('keydown', this.fishingKeyDown)
+    window.addEventListener('keydown', this.checkKeyDown)
   },
   beforeUnmount() {
-    window.removeEventListener('keydown', this.fishingKeyDown)
+    window.removeEventListener('keydown', this.checkKeyDown)
   },
   computed: {
     ...mapGetters([
@@ -35,6 +40,10 @@ export default {
       'getIsGaming',
       'getIsHooked',
       'getIsBroken',
+      'getCurrentFish',
+      'getActiveTacklesInfo',
+      'getFeedInfo',
+      'getActiveBaitInfo',
       'getCurrentAreaInfo'
     ])
   },
@@ -44,12 +53,19 @@ export default {
       'setGaming',
       'setHooked',
       'setBroken',
-      'addFish',
-      'relocateCurrentArea'
+      'setCurrentFish',
+      'addCurrentFish',
+      'changeFeedCount',
+      'setActiveBait',
+      'relocateCurrentArea',
+      'relocateMaxDistanceAreaToBoat',
+      'setShopping'
     ]),
     startFishing() {
+      this.setCurrentFish()
       this.playerDelay = (!this.getCurrentAreaInfo ? 2500 : (this.getCurrentAreaInfo.area.type === 'medium' ? 1000 : 0))
       this.timeout = setTimeout(() => {
+        this.playerSpeed = Math.max(Math.min(Math.floor(this.getCurrentFish.weight / this.getActiveTacklesInfo.totalLevel), 17), 1)
         this.setGaming(true)
         this.direction = 1
         this.playerPosition = 0
@@ -57,35 +73,68 @@ export default {
       }, this.playerDelay)
       this.interval = setInterval(() => {
         this.playerPosition += this.direction * this.playerSpeed
-        if(this.playerPosition <= 0 || this.playerPosition >= 100)
-          this.direction *= -1
-      }, 20)
+        if(this.playerPosition <= 0) {
+          this.playerPosition = 0
+          this.direction = 1
+        }
+        else if(this.playerPosition >= 100) {
+          this.playerPosition = 100
+          this.direction = -1
+        }
+      }, 10)
     },
     stopFishing() {
       this.setGaming(false)
       clearTimeout(this.timeout)
       clearInterval(this.interval)
     },
-    fishingKeyDown(event) {
-      if(event.key === ' ' && !this.getIsHooked && !this.getIsBroken) {
-        this.setFishing()
-        if(this.getIsFishing)
-          this.startFishing()
-        else if(this.getIsGaming && Math.abs(this.targetPosition - this.playerPosition) <= 5) {
-          this.stopFishing()
-          this.setHooked()
-          setTimeout(() => {
-            this.relocateCurrentArea()
-            this.addFish()
-            this.setHooked()
-          }, 1000)
+    checkKeyDown(event) {
+      if(!this.getIsHooked && !this.getIsBroken) {
+        if(this.baitKeyIndex.hasOwnProperty(event.code) && !this.getIsFishing) {
+          this.setActiveBait(this.baitKeyIndex[event.code])
         }
-        else {
-          this.stopFishing()
-          this.setBroken()
-          setTimeout(() => {
-            this.setBroken()
-          }, 800)
+        else if(event.code === 'KeyV' && !this.getIsFishing) {
+          if(this.getFeedInfo.feed.count > 0 && !this.getCurrentAreaInfo) {
+            this.relocateMaxDistanceAreaToBoat('medium')
+            this.changeFeedCount(-1)
+          }
+          else if(this.getFeedInfo.feed.count > 2 && this.getCurrentAreaInfo.area.type === 'medium') {
+            this.relocateCurrentArea()
+            this.relocateMaxDistanceAreaToBoat('high')
+            this.changeFeedCount(-3)
+          }
+        }
+        else if(event.code === 'Space') {
+          if(this.getCurrentAreaInfo && this.getCurrentAreaInfo.area.type === 'shallow') {
+            this.setShopping()
+          }
+          else {
+            this.setFishing()
+            if(this.getIsFishing) {
+              if(this.getActiveBaitInfo.bait.count <= 0 || this.getActiveTacklesInfo.totalLevel === 0) {
+                this.setFishing()
+              }
+              else {
+                this.startFishing()
+              }
+            }
+            else if(this.getIsGaming && Math.abs(this.targetPosition - this.playerPosition) <= 5) {
+              this.stopFishing()
+              this.setHooked()
+              setTimeout(() => {
+                this.relocateCurrentArea()
+                this.addCurrentFish()
+                this.setHooked()
+              }, 1000)
+            }
+            else {
+              this.stopFishing()
+              this.setBroken()
+              setTimeout(() => {
+                this.setBroken()
+              }, 800)
+            }
+          }
         }
       }
     }
