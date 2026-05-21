@@ -2,6 +2,7 @@
   <div class="text">
     <div class="text__balance">Balance: {{ getBalance < 10000 ? getBalance : '>9999' }}$</div>
     <div class="text__coords">Coordinates (X: {{ getBoat.x }}, Y: {{ getBoat.y }})</div>
+    <div class="text__time">Time: {{ getTime }}</div>
     <div class="text__area">Area type: {{ getCurrentAreaType }}</div>
   </div>
 </template>
@@ -14,6 +15,7 @@ export default {
   computed: {
     ...mapGetters([
       'getBoat',
+      'getTime',
       'getBalance',
       'getCurrentAreaInfo'
     ]),
@@ -49,13 +51,17 @@ export default {
     -2px 2px 0 black,
     2px 2px 0 black;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 3;
 
   &__balance {
     font-weight: bold;
   }
 
   &__coords {
+    font-weight: bold;
+  }
+
+  &__time {
     font-weight: bold;
   }
 

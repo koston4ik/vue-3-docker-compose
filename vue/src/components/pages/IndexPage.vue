@@ -1,9 +1,10 @@
 <template>
   <div class="map" :style="mapStyle">
     <div class="map__area" v-for="area in getReversedAreas" :class="'map__area--' + area.type" :style="areaStyle(area)"/>
+    <Boat v-for="pirate in getPirates" :boat="pirate" type="pirate"/>
   </div>
-  <div class="water"/>
-  <Boat/>
+  <div class="water" :style="waterStyle"/>
+  <Boat :boat="getBoat" type="player"/>
   <BottomInventory/>
   <Location/>
   <MiniGame/>
@@ -45,7 +46,8 @@ export default {
       lastCheck: {
         x: 0,
         y: 0
-      }
+      },
+      animationFrame: null
     }
   },
   mounted() {
@@ -54,12 +56,16 @@ export default {
     window.addEventListener('resize', this.updateCenter)
     this.updateMoving()
     this.updateCenter()
+    this.startTickTime()
+    this.startAddPirates()
     this.startArea()
   },
   beforeUnmount() {
     window.removeEventListener('keydown', this.movingKeyDown)
     window.removeEventListener('keyup', this.movingKeyUp)
     window.removeEventListener('resize', this.updateCenter)
+    cancelAnimationFrame(this.animationFrame)
+    this.clearIntervals()
   },
   computed: {
     ...mapGetters([
@@ -67,12 +73,23 @@ export default {
       'getIsFishing',
       'getIsHooked',
       'getIsBroken',
+      'getIsFighting',
+      'getIsShopping',
+      'getIsStopped',
+      'getIsNight',
       'getAreas',
-      'getIsShopping'
+      'getPirates'
     ]),
     mapStyle() {
       return {
         transform: 'translate(' + (this.center.x - this.getBoat.x) + 'px, ' + (this.center.y - this.getBoat.y) + 'px)'
+      }
+    },
+    waterStyle() {
+      if(this.getIsNight) {
+        return {
+          backgroundColor: 'rgb(25, 90, 90)'
+        }
       }
     },
     getReversedAreas() {
@@ -83,8 +100,12 @@ export default {
     ...mapActions([
       'move',
       'setMoving',
+      'clearIntervals',
+      'startTickTime',
       'startArea',
-      'relocateDistantAreas'
+      'relocateDistantAreas',
+      'startAddPirates',
+      'movePirates'
     ]),
     areaStyle(area) {
       return {
@@ -95,7 +116,7 @@ export default {
       }
     },
     updateMoving() {
-      if(!this.getIsFishing && !this.getIsHooked && !this.getIsBroken && !this.getIsShopping) {
+      if(!this.getIsFishing && !this.getIsHooked && !this.getIsBroken && !this.getIsFighting && !this.getIsShopping && !this.getIsStopped) {
         let x = 0, y = 0
         if(this.pressed.ArrowDown) {
           y += 1
@@ -124,7 +145,8 @@ export default {
       else {
         this.setMoving(false)
       }
-      requestAnimationFrame(this.updateMoving)
+      this.movePirates()
+      this.animationFrame = requestAnimationFrame(this.updateMoving)
     },
     updateCenter() {
       this.center.x = window.innerWidth / 2
@@ -177,6 +199,7 @@ export default {
   position: absolute;
   width: 100%;
   height: 100%;
+  transition: background-color 0.5s ease;
   background-color: rgb(25, 120, 120);
   z-index: 0;
 }

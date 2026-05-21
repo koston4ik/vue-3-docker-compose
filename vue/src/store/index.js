@@ -1,64 +1,43 @@
 import { createStore } from 'vuex'
-import greenFish from '../assets/images/fish/green.png'
-import blueFish from '../assets/images/fish/blue.png'
-import redFish from '../assets/images/fish/red.png'
-import worm from '../assets/images/bait/worm.png'
-import caterpillar from '../assets/images/bait/caterpillar.png'
-import crab from '../assets/images/bait/crab.png'
-import feed from '../assets/images/bait/feed.png'
-import bambooRod from '../assets/images/tackle/rod/bamboo.png'
-import woodRod from '../assets/images/tackle/rod/wood.png'
-import carbonRod from '../assets/images/tackle/rod/carbon.png'
-import basicReel from '../assets/images/tackle/reel/basic.png'
-import blueReel from '../assets/images/tackle/reel/blue.png'
-import redReel from '../assets/images/tackle/reel/red.png'
-import basicHook from '../assets/images/tackle/hook/basic.png'
-import blueHook from '../assets/images/tackle/hook/blue.png'
-import goldHook from '../assets/images/tackle/hook/gold.png'
+import { FISH_TYPES, TACKLE_TYPES, BAIT_TYPES } from '../config/types.js'
+import { findAreaIndex, getRandomInt, getRandomOffset, normalize } from '../utils/functions.js'
 
 const MUTATIONS = {
   MOVE: 'MOVE',
+  SET_DIRECTION: 'SET_DIRECTION',
   SET_MOVING: 'SET_MOVING',
   SET_FISHING: 'SET_FISHING',
   SET_GAMING: 'SET_GAMING',
   SET_HOOKED: 'SET_HOOKED',
   SET_BROKEN: 'SET_BROKEN',
+  SET_FIGHTING: 'SET_FIGHTING',
+  SET_SHOPPING: 'SET_SHOPPING',
+  SET_STOPPED: 'SET_STOPPED',
   SET_CURRENT_FISH: 'SET_CURRENT_FISH',
   ADD_CURRENT_FISH: 'ADD_CURRENT_FISH',
   SET_FISH_SKIPPED: 'SET_FISH_SKIPPED',
+  SET_TIME_INTERVAL: 'SET_TIME_INTERVAL',
+  SET_PIRATES_INTERVAL: 'SET_PIRATES_INTERVAL',
   CHANGE_FISH_SKIPPED: 'CHANGE_FISH_SKIPPED',
   CLEAR_INVENTORY_FISH: 'CLEAR_INVENTORY_FISH',
   SET_ACTIVE_TACKLE: 'SET_ACTIVE_TACKLE',
   SET_TACKLE_OWNED: 'SET_TACKLE_OWNED',
+  CLEAR_INVENTORY_TACKLE: 'CLEAR_INVENTORY_TACKLE',
   SET_ACTIVE_BAIT: 'SET_ACTIVE_BAIT',
   CHANGE_BAIT_COUNT: 'CHANGE_BAIT_COUNT',
+  TICK_TIME: 'TICK_TIME',
+  TOGGLE_NIGHT: 'TOGGLE_NIGHT',
+  CLEAR_TIME_INTERVAL: 'CLEAR_TIME_INTERVAL',
+  CLEAR_PIRATES_INTERVAL: 'CLEAR_PIRATES_INTERVAL',
   CHANGE_BALANCE: 'CHANGE_BALANCE',
   START_AREA: 'START_AREA',
   RELOCATE_AREA: 'RELOCATE_AREA',
-  SET_SHOPPING: 'SET_SHOPPING'
-}
-
-const randomInt = (min, max) => {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
-
-const offsets = (minDist, maxDist) => {
-  let x, y
-  do {
-    x = randomInt(-maxDist, maxDist)
-    y = randomInt(-maxDist, maxDist)
-  } while(Math.abs(x) < minDist && Math.abs(y) < minDist)
-  return {x: x, y: y}
-}
-
-const findAreaIndex = (x, y, areas, type, allTypes) => {
-  return areas.findIndex(area => {
-    if(area.type === type || allTypes) {
-      const dx = x - area.x, dy = y - area.y
-      return (dx * dx + dy * dy <= area.radius * area.radius)
-    }
-    return false
-  })
+  MOVE_PIRATE: 'MOVE_PIRATE',
+  SET_PIRATE_SPEED: 'SET_PIRATE_SPEED',
+  SET_PIRATE_MOVING: 'SET_PIRATE_MOVING',
+  SET_PIRATE_FIGHTING: 'SET_PIRATE_FIGHTING',
+  ADD_PIRATE: 'ADD_PIRATE',
+  REMOVE_PIRATE: 'REMOVE_PIRATE'
 }
 
 export default createStore({
@@ -67,53 +46,52 @@ export default createStore({
       boat: {
         x: 0,
         y: 0,
-        speed: 4,
-        direction: 1
+        speed: 6,
+        direction: 1,
+        isMoving: false,
+        isFishing: false,
+        isGaming: false,
+        isHooked: false,
+        isBroken: false,
+        isFighting: false,
+        isShopping: false,
+        isStopped: false
       },
-      fishTypes: [
-        {name: 'green fish', image: greenFish, minWeight: 1, maxWeight: 6, pricePerKg: 2},
-        {name: 'blue fish', image: blueFish, minWeight: 8, maxWeight: 24, pricePerKg: 3},
-        {name: 'red fish', image: redFish, minWeight: 27, maxWeight: 81, pricePerKg: 4},
-      ],
       currentFish: null,
       fishSkipped: 0,
       inventory: {
         fishes: [],
-        tackles: [
-          {name: 'bamboo rod', image: bambooRod, isOwned: true, level: 1, price: 0, isActive: true, type: 'rod'},
-          {name: 'wood rod', image: woodRod, isOwned: false, level: 2, price: 250, isActive: false, type: 'rod'},
-          {name: 'carbon rod', image: carbonRod, isOwned: false, level: 3, price: 1000, isActive: false, type: 'rod'},
-          {name: 'basic reel', image: basicReel, isOwned: true, level: 1, price: 0, isActive: true, type: 'reel'},
-          {name: 'blue reel', image: blueReel, isOwned: false, level: 2, price: 100, isActive: false, type: 'reel'},
-          {name: 'red reel', image: redReel, isOwned: false, level: 3, price: 1000, isActive: false, type: 'reel'},
-          {name: 'basic hook', image: basicHook, isOwned: true, level: 1, price: 0, isActive: true, type: 'hook'},
-          {name: 'blue hook', image: blueHook, isOwned: false, level: 2, price: 50, isActive: false, type: 'hook'},
-          {name: 'gold hook', image: goldHook, isOwned: false, level: 3, price: 1000, isActive: false, type: 'hook'}
-        ],
-        baits: [
-          {name: 'worm', image: worm, count: 10, level: 0, price: 2, isActive: true, type: 'fishing'},
-          {name: 'caterpillar', image: caterpillar, count: 0, level: 1, price: 6, isActive: false, type: 'fishing'},
-          {name: 'crab', image: crab, count: 0, level: 2, price: 12, isActive: false, type: 'fishing'},
-          {name: 'feed', image: feed, count: 0, level: 0, price: 10, isActive: false, type: 'feeding'}
-        ]
+        tackles: TACKLE_TYPES.map(tackle => ({
+          ...tackle,
+          isActive: tackle.level === 1,
+          isOwned: tackle.level === 1
+        })),
+        baits: BAIT_TYPES.map((bait, index) => ({
+          ...bait,
+          isActive: index === 0,
+          count: index === 0 ? 10 : 0
+        }))
       },
+      time: 360,
+      timeInterval: null,
+      piratesInterval: null,
       balance: 0,
       areas: [],
-      isMoving: false,
-      isFishing: false,
-      isGaming: false,
-      isHooked: false,
-      isBroken: false,
-      isShopping: false
+      pirates: [],
+      isNight: false
     }
   },
   getters: {
     getBoat: (state) => state.boat,
-    getIsMoving: (state) => state.isMoving,
-    getIsFishing: (state) => state.isFishing,
-    getIsGaming: (state) => state.isGaming,
-    getIsHooked: (state) => state.isHooked,
-    getIsBroken: (state) => state.isBroken,
+    getIsMoving: (state) => state.boat.isMoving,
+    getIsFishing: (state) => state.boat.isFishing,
+    getIsGaming: (state) => state.boat.isGaming,
+    getIsHooked: (state) => state.boat.isHooked,
+    getIsBroken: (state) => state.boat.isBroken,
+    getIsFighting: (state) => state.boat.isFighting,
+    getIsShopping: (state) => state.boat.isShopping,
+    getIsStopped: (state) => state.boat.isStopped,
+    getIsNight: (state) => state.isNight,
     getCurrentFish: (state) => state.currentFish,
     getFishSkipped: (state) => state.fishSkipped,
     getLengthInventoryFish: (state) => state.inventory.fishes.length,
@@ -153,6 +131,13 @@ export default createStore({
         index: index
       }
     },
+    getTime: (state) => {
+      const time = state.time
+      let hours = Math.floor(time / 60), minutes = time % 60
+      hours = hours < 10 ? '0' + hours : hours
+      minutes = minutes < 10 ? '0' + minutes : minutes
+      return hours + ':' + minutes
+    },
     getBalance: (state) => state.balance,
     getAreas: (state) => state.areas,
     getCurrentAreaInfo: (state) => {
@@ -165,7 +150,7 @@ export default createStore({
       }
       return null
     },
-    getIsShopping: (state) => state.isShopping
+    getPirates: (state) => state.pirates
   },
   mutations: {
     [MUTATIONS.MOVE]: (state, payload) => {
@@ -179,20 +164,32 @@ export default createStore({
         state.boat.direction = -1
       }
     },
+    [MUTATIONS.SET_DIRECTION]: (state, value) => {
+      state.boat.direction = value
+    },
     [MUTATIONS.SET_MOVING]: (state, value) => {
-      state.isMoving = value
+      state.boat.isMoving = value
     },
     [MUTATIONS.SET_FISHING]: (state) => {
-      state.isFishing = !state.isFishing
+      state.boat.isFishing = !state.boat.isFishing
     },
     [MUTATIONS.SET_GAMING]: (state, value) => {
-      state.isGaming = value
+      state.boat.isGaming = value
     },
     [MUTATIONS.SET_HOOKED]: (state) => {
-      state.isHooked = !state.isHooked
+      state.boat.isHooked = !state.boat.isHooked
     },
     [MUTATIONS.SET_BROKEN]: (state) => {
-      state.isBroken = !state.isBroken
+      state.boat.isBroken = !state.boat.isBroken
+    },
+    [MUTATIONS.SET_FIGHTING]: (state, value) => {
+      state.boat.isFighting = value
+    },
+    [MUTATIONS.SET_SHOPPING]: (state) => {
+      state.boat.isShopping = !state.boat.isShopping
+    },
+    [MUTATIONS.SET_STOPPED]: (state, value) => {
+      state.boat.isStopped = value
     },
     [MUTATIONS.SET_CURRENT_FISH]: (state, payload) => {
       state.currentFish = payload
@@ -224,6 +221,14 @@ export default createStore({
       }
       state.inventory.tackles[index].isOwned = buy
     },
+    [MUTATIONS.CLEAR_INVENTORY_TACKLE]: (state) => {
+      state.inventory.tackles.forEach(tackle => {
+        if(tackle.isActive) {
+          tackle.isActive = false
+          tackle.isOwned = false
+        }
+      })
+    },
     [MUTATIONS.SET_ACTIVE_BAIT]: (state, payload) => {
       const {oldIndex, newIndex} = payload
       state.inventory.baits[oldIndex].isActive = false
@@ -232,6 +237,30 @@ export default createStore({
     [MUTATIONS.CHANGE_BAIT_COUNT]: (state, payload) => {
       const {index, count} = payload
       state.inventory.baits[index].count += count
+    },
+    [MUTATIONS.TICK_TIME]: (state) => {
+      if(state.time + 1 >= 1440) {
+        state.time = 0
+      }
+      else {
+        state.time += 1
+      }
+    },
+    [MUTATIONS.TOGGLE_NIGHT]: (state) => {
+      state.isNight = !state.isNight
+      state.boat.speed = state.isNight ? 4 : 6
+    },
+    [MUTATIONS.SET_TIME_INTERVAL]: (state, value) => {
+      state.timeInterval = value
+    },
+    [MUTATIONS.SET_PIRATES_INTERVAL]: (state, value) => {
+      state.piratesInterval = value
+    },
+    [MUTATIONS.CLEAR_TIME_INTERVAL]: (state) => {
+      clearInterval(state.timeInterval)
+    },
+    [MUTATIONS.CLEAR_PIRATES_INTERVAL]: (state) => {
+      clearInterval(state.piratesInterval)
     },
     [MUTATIONS.CHANGE_BALANCE]: (state, value) => {
       state.balance += value
@@ -244,8 +273,46 @@ export default createStore({
       state.areas[index].x = px
       state.areas[index].y = py
     },
-    [MUTATIONS.SET_SHOPPING]: (state) => {
-      state.isShopping = !state.isShopping
+    [MUTATIONS.MOVE_PIRATE]: (state, payload) => {
+      const {index, px, py} = payload
+      state.pirates[index].x += state.pirates[index].speed * px
+      state.pirates[index].y += state.pirates[index].speed * py
+      if(px > 0) {
+        state.pirates[index].direction = 1
+      }
+      else if(px < 0) {
+        state.pirates[index].direction = -1
+      }
+    },
+    [MUTATIONS.SET_PIRATE_SPEED]: (state, payload) => {
+      const {index, value} = payload
+      state.pirates[index].speed = value
+    },
+    [MUTATIONS.SET_PIRATE_MOVING]: (state, payload) => {
+      const {index, value} = payload
+      state.pirates[index].isMoving = value
+    },
+    [MUTATIONS.SET_PIRATE_FIGHTING]: (state, payload) => {
+      const {index, value} = payload
+      state.pirates[index].isFighting = value
+    },
+    [MUTATIONS.ADD_PIRATE]: (state, payload) => {
+      const {px, py, speed, direction, isMoving, isFighting} = payload
+      const newPirates = [...state.pirates]
+      newPirates.push({
+        x: px,
+        y: py,
+        speed: speed,
+        direction: direction,
+        isMoving: isMoving,
+        isFighting: isFighting
+      })
+      state.pirates = newPirates
+    },
+    [MUTATIONS.REMOVE_PIRATE]: (state, value) => {
+      const newPirates = [...state.pirates]
+      newPirates.splice(value, 1)
+      state.pirates = newPirates
     }
   },
   actions: {
@@ -296,12 +363,40 @@ export default createStore({
     setBroken: (store) => {
       store.commit(MUTATIONS.SET_BROKEN)
     },
+    setFighting: (store, value) => {
+      store.commit(MUTATIONS.SET_FIGHTING, value)
+    },
+    setShopping: (store) => {
+      store.commit(MUTATIONS.SET_SHOPPING)
+    },
+    fightResult: (store, value) => {
+      if(value === 3) {
+        store.commit(MUTATIONS.CHANGE_BAIT_COUNT, {
+          index: 0,
+          count: 1
+        })
+      }
+      else if(value < 3) {
+        store.commit(MUTATIONS.CHANGE_BALANCE, -store.state.balance)
+        if(value < 2) {
+          store.commit(MUTATIONS.CLEAR_INVENTORY_TACKLE)
+          if(value < 1) {
+            store.commit(MUTATIONS.SET_FISH_SKIPPED, 0)
+            store.commit(MUTATIONS.CLEAR_INVENTORY_FISH)
+          }
+        }
+      }
+    },
     setCurrentFish: (store) => {
       store.commit(MUTATIONS.CHANGE_BAIT_COUNT, {
         index: store.getters.getActiveBaitInfo.index,
         count: -1
       })
-      const type = store.state.fishTypes[randomInt(0, store.getters.getActiveBaitInfo.bait.level)], weight = randomInt(type.minWeight, type.maxWeight)
+      const type = FISH_TYPES[getRandomInt(0, store.getters.getActiveBaitInfo.bait.level)]
+      let weight = getRandomInt(type.minWeight, type.maxWeight)
+      if(store.state.isNight) {
+        weight *= 2
+      }
       store.commit(MUTATIONS.SET_CURRENT_FISH, {
         name: type.name,
         image: type.image,
@@ -368,10 +463,28 @@ export default createStore({
         count: count
       })
     },
+    clearIntervals: (store) => {
+      store.commit(MUTATIONS.CLEAR_TIME_INTERVAL)
+      store.commit(MUTATIONS.CLEAR_PIRATES_INTERVAL)
+    },
+    startTickTime: (store) => {
+      if(store.state.timeInterval) {
+        store.commit(MUTATIONS.CLEAR_TIME_INTERVAL)
+      }
+      store.commit(MUTATIONS.SET_TIME_INTERVAL,
+        setInterval(() => {
+          store.commit(MUTATIONS.TICK_TIME)
+          const hours = Math.floor(store.state.time / 60)
+          if((hours > 21 || hours < 6) !== store.state.isNight) {
+            store.commit(MUTATIONS.TOGGLE_NIGHT)
+          }
+        }, 1000)
+      )
+    },
     startArea: (store) => {
       const areas = [], coords = []
       for(let i = 0; i < 3; ++i) {
-        const c = offsets(750, 2500)
+        const c = getRandomOffset(750, 2500)
         coords.push({
           x: c.x,
           y: c.y
@@ -393,16 +506,16 @@ export default createStore({
       }
       for(let i = 0; i < 50; ++i) {
         areas.push({
-          x: randomInt(-2500, 2500),
-          y: randomInt(-2500, 2500),
+          x: getRandomInt(-2500, 2500),
+          y: getRandomInt(-2500, 2500),
           type: 'high',
           radius: 100
         })
       }
       for(let i = 0; i < 25; ++i) {
         areas.push({
-          x: randomInt(-2500, 2500),
-          y: randomInt(-2500, 2500),
+          x: getRandomInt(-2500, 2500),
+          y: getRandomInt(-2500, 2500),
           type: 'medium',
           radius: 250
         })
@@ -411,7 +524,7 @@ export default createStore({
     },
     relocateCurrentArea: (store) => {
       if(store.getters.getCurrentAreaInfo) {
-        const offset = offsets(1000, 2500)
+        const offset = getRandomOffset(1000, 2500)
         store.commit(MUTATIONS.RELOCATE_AREA, {
           index: store.getters.getCurrentAreaInfo.index,
           px: store.state.boat.x + offset.x,
@@ -422,7 +535,7 @@ export default createStore({
     relocateDistantAreas: (store) => {
       store.state.areas.forEach((area, index) => {
         if(Math.abs(area.x - store.state.boat.x) > 2500 || Math.abs(area.y - store.state.boat.y) > 2500) {
-          const offset = offsets(1000, 2500)
+          const offset = getRandomOffset(1000, 2500)
           store.commit(MUTATIONS.RELOCATE_AREA, {
             index: index,
             px: store.state.boat.x + offset.x,
@@ -456,8 +569,89 @@ export default createStore({
         py: store.state.boat.y
       })
     },
-    setShopping: (store) => {
-      store.commit(MUTATIONS.SET_SHOPPING)
+    startAddPirates: (store) => {
+      if(store.state.piratesInterval) {
+        store.commit(MUTATIONS.CLEAR_PIRATES_INTERVAL)
+      }
+      store.commit(MUTATIONS.SET_PIRATES_INTERVAL,
+        setInterval(() => {
+          const piratesCount = store.state.pirates.length
+          if(piratesCount < 1 || (piratesCount < (store.state.isNight ? 5 : 3) && Math.random() < 0.25)) {
+            const offset = getRandomOffset(3000, 4000)
+            store.commit(MUTATIONS.ADD_PIRATE, {
+              px: store.state.boat.x + offset.x,
+              py: store.state.boat.y + offset.y,
+              speed: 2,
+              direction: -normalize(offset.x, -1),
+              isMoving: true,
+              isFighting: false
+            })
+          }
+        }, 1000)
+      )
+    },
+    movePirates: (store) => {
+      const piratesToRemove = []
+      store.state.pirates.forEach((pirate, index) => {
+        if(!pirate.isFighting) {
+          const dx = store.state.boat.x - pirate.x, dy = store.state.boat.y - pirate.y, distance = Math.sqrt(dx * dx + dy * dy)
+          if(distance > 600 || store.state.boat.isFighting) {
+            if(pirate.speed !== 2) {
+              store.commit(MUTATIONS.SET_PIRATE_SPEED, {
+                index: index,
+                value: 2
+              })
+            }
+            store.commit(MUTATIONS.MOVE_PIRATE, {
+              index: index,
+              px: pirate.direction,
+              py: 0
+            })
+          }
+          else if(distance > 200) {
+            if(pirate.speed !== 4) {
+              store.commit(MUTATIONS.SET_PIRATE_SPEED, {
+                index: index,
+                value: 4
+              })
+            }
+            store.commit(MUTATIONS.MOVE_PIRATE, {
+              index: index,
+              px: normalize(dx, 0),
+              py: normalize(dy, 0)
+            })
+          }
+          else {
+            if(pirate.isMoving) {
+              store.commit(MUTATIONS.SET_PIRATE_MOVING, {
+                index: index,
+                value: false
+              })
+            }
+            if(!store.state.boat.isFishing && !store.state.boat.isHooked && !store.state.boat.isBroken && !store.state.boat.isShopping) {
+              store.commit(MUTATIONS.SET_FIGHTING, true)
+              store.commit(MUTATIONS.SET_DIRECTION, -pirate.direction)
+              store.commit(MUTATIONS.SET_PIRATE_FIGHTING, {
+                index: index,
+                value: true
+              })
+              store.commit(MUTATIONS.SET_STOPPED, false)
+            }
+            else {
+              store.commit(MUTATIONS.SET_STOPPED, true)
+            }
+          }
+          if(findAreaIndex(pirate.x, pirate.y, store.state.areas, 'island', false) !== -1 || distance > 5000) {
+            piratesToRemove.push(index)
+          }
+        }
+        else if(!store.state.boat.isFighting) {
+          piratesToRemove.push(index)
+        }
+      })
+      piratesToRemove.reverse().forEach(index => {
+        store.commit(MUTATIONS.REMOVE_PIRATE, index)
+      })
     }
   }
 })
